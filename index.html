@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARTEMIS TRACKER — Artemis 2 Mission</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Three.js import map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three":         "https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+
+  <!-- ── Navigation ────────────────────────────────────────────────────── -->
+  <nav class="nav-bar">
+    <div class="nav-brand">
+      <span class="nav-logo" aria-hidden="true">🚀</span>
+      <div class="nav-brand-text">
+        <span class="nav-title">ARTEMIS TRACKER</span>
+        <span class="nav-subtitle" id="nav-subtitle">Artemis 2</span>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="#/" class="nav-link active" data-view="visualization">3D VIEW</a>
+      <a href="#/telemetry" class="nav-link" data-view="telemetry">TELEMETRY</a>
+      <a href="#/about" class="nav-link" data-view="about">MISSION INFO</a>
+    </div>
+
+    <div class="nav-status">
+      <span class="status-dot-live" aria-label="Live"></span>
+      <span id="nav-met" class="nav-met">T+00:00:00</span>
+    </div>
+  </nav>
+
+  <!-- ── App container ──────────────────────────────────────────────────── -->
+  <main id="app">
+
+    <!-- ╔══════════════════════════════════════════════════════════════════╗
+         ║  VIEW 1 — 3D Visualization                                      ║
+         ╚══════════════════════════════════════════════════════════════════╝ -->
+    <div id="view-visualization" class="view active">
+
+      <!-- 3D Canvas -->
+      <div class="scene-wrapper">
+        <canvas id="main-canvas"></canvas>
+
+        <!-- Phase badge overlay -->
+        <div class="overlay-badge" id="phase-badge">Ascent</div>
+
+        <!-- Camera hint -->
+        <div class="overlay-hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+      </div>
+
+      <!-- Controls sidebar -->
+      <aside class="controls-sidebar">
+
+        <!-- Timeline controls -->
+        <section class="ctrl-group">
+          <h3 class="ctrl-title">Mission Timeline</h3>
+
+          <div class="time-btn-row">
+            <button id="btn-play"  class="btn btn-primary">▶ Play</button>
+            <button id="btn-reset" class="btn">⏮ Reset</button>
+          </div>
+
+          <div class="slider-wrap">
+            <label class="ctrl-label" for="mission-time-slider">Mission Time (hours)</label>
+            <input  type="range" id="mission-time-slider"
+                    min="0" max="240" value="0" step="0.1" class="met-slider" />
+            <span id="time-display" class="met-text">T+00:00:00</span>
+          </div>
+
+          <div class="speed-row">
+            <span class="ctrl-label">Playback Speed</span>
+            <div class="speed-btns">
+              <button class="btn speed-btn" data-speed="0.5">0.5×</button>
+              <button class="btn speed-btn active" data-speed="5">5×</button>
+              <button class="btn speed-btn" data-speed="20">20×</button>
+              <button class="btn speed-btn" data-speed="60">60×</button>
+            </div>
+          </div>
+          <p class="speed-note">Speed unit: mission-hours / real second</p>
+        </section>
+
+        <!-- Camera views -->
+        <section class="ctrl-group">
+          <h3 class="ctrl-title">Camera Presets</h3>
+          <div class="view-btn-grid">
+            <button class="btn view-btn" data-view="default">Default</button>
+            <button class="btn view-btn" data-view="top">Top Down</button>
+            <button class="btn view-btn" data-view="side">Side View</button>
+            <button class="btn view-btn" data-view="earth">Earth Close</button>
+            <button class="btn view-btn" data-view="spacecraft">Follow S/C</button>
+          </div>
+        </section>
+
+        <!-- Display options -->
+        <section class="ctrl-group">
+          <h3 class="ctrl-title">Display Options</h3>
+          <label class="toggle-label">
+            <input type="checkbox" id="show-orbit"  checked />
+            <span>Show Intended Track (cyan)</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="show-grid" />
+            <span>Orbital Plane Grid</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="show-labels" checked />
+            <span>Body Labels</span>
+          </label>
+          <div class="track-legend">
+            <span class="legend-dot" style="background:#ff2222;"></span><span>Flown track</span>
+            <span class="legend-dot" style="background:#00d4ff; margin-left:10px;"></span><span>Intended track</span>
+          </div>
+        </section>
+
+        <!-- Live signal status -->
+        <section class="ctrl-group live-status-group">
+          <h3 class="ctrl-title">Live Signal</h3>
+          <div class="live-status-row">
+            <span id="live-badge" class="live-badge badge-idle">CONNECTING</span>
+            <span id="live-source" class="live-source">artemistracker.com</span>
+          </div>
+          <div class="data-row" style="margin-top:6px;">
+            <span class="data-key">Last fix</span>
+            <span class="data-val" id="live-last-fix">—</span>
+          </div>
+          <div class="data-row">
+            <span class="data-key">Next poll in</span>
+            <span class="data-val" id="live-countdown">—</span>
+          </div>
+          <div class="data-row">
+            <span class="data-key">Track fixes</span>
+            <span class="data-val" id="live-fix-count">—</span>
+          </div>
+          <button id="btn-clear-track" class="btn" style="width:100%;margin-top:8px;font-size:10px;">
+            🗑 Clear Stored Track
+          </button>
+        </section>
+
+        <!-- Live mini-telemetry -->
+        <section class="ctrl-group telem-mini">
+          <h3 class="ctrl-title">Live Data</h3>
+          <div class="data-row">
+            <span class="data-key">Phase</span>
+            <span class="data-val" id="mini-phase">—</span>
+          </div>
+          <div class="data-row">
+            <span class="data-key">Earth Distance</span>
+            <span class="data-val" id="mini-earth-dist">—</span>
+          </div>
+          <div class="data-row">
+            <span class="data-key">Moon Distance</span>
+            <span class="data-val" id="mini-moon-dist">—</span>
+          </div>
+          <div class="data-row">
+            <span class="data-key">Velocity</span>
+            <span class="data-val" id="mini-velocity">—</span>
+          </div>
+        </section>
+
+      </aside>
+    </div><!-- /view-visualization -->
+
+
+    <!-- ╔══════════════════════════════════════════════════════════════════╗
+         ║  VIEW 2 — Telemetry                                              ║
+         ╚══════════════════════════════════════════════════════════════════╝ -->
+    <div id="view-telemetry" class="view">
+      <div class="telem-container">
+
+        <div class="telem-header-row">
+          <div class="telem-header-card">
+            <span class="telem-header-label">Mission Elapsed Time</span>
+            <span id="tel-met" class="telem-header-value met-big">T+00:00:00</span>
+          </div>
+          <div class="telem-header-card">
+            <span class="telem-header-label">Current Phase</span>
+            <span id="tel-phase" class="telem-header-value phase-big">Pre-Launch</span>
+          </div>
+          <div class="telem-header-card">
+            <span class="telem-header-label">UTC Date/Time</span>
+            <span id="tel-date" class="telem-header-value date-val">—</span>
+          </div>
+        </div>
+
+        <div class="telem-tables-grid">
+
+          <div class="telem-section">
+            <h2>Position — ECI Frame</h2>
+            <table class="data-table">
+              <thead>
+                <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>X  (Moon-direction axis)</td>     <td id="tel-x">0</td>    <td>km</td></tr>
+                <tr><td>Y  (North / polar axis)</td>      <td id="tel-y">0</td>    <td>km</td></tr>
+                <tr><td>Z  (Orbital plane axis)</td>      <td id="tel-z">0</td>    <td>km</td></tr>
+                <tr><td>Radial distance</td>              <td id="tel-r">6,371</td> <td>km</td></tr>
+                <tr><td>Altitude (above surface)</td>     <td id="tel-alt">0</td>  <td>km</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="telem-section">
+            <h2>Distances &amp; Velocity</h2>
+            <table class="data-table">
+              <thead>
+                <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Distance from Earth</td>      <td id="tel-earth-dist">6,371</td> <td>km</td></tr>
+                <tr><td>Distance from Moon</td>       <td id="tel-moon-dist">—</td>       <td>km</td></tr>
+                <tr><td>Spacecraft velocity</td>      <td id="tel-vel">0</td>             <td>km/s</td></tr>
+                <tr><td>Moon orbital angle</td>       <td id="tel-moon-angle">0.0°</td>   <td>deg</td></tr>
+                <tr class="live-row"><td>⬤ LIVE distance from Earth</td> <td id="tel-live-dist">—</td> <td>km</td></tr>
+                <tr class="live-row"><td>⬤ LIVE range rate</td>          <td id="tel-live-rate">—</td> <td>km/s</td></tr>
+                <tr class="live-row"><td>⬤ LIVE velocity</td>            <td id="tel-live-vel">—</td>  <td>km/s</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="telem-section">
+            <h2>Moon Position — ECI Frame</h2>
+            <table class="data-table">
+              <thead>
+                <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Moon X</td> <td id="tel-moon-x">384,400</td> <td>km</td></tr>
+                <tr><td>Moon Y</td> <td id="tel-moon-y">0</td>        <td>km</td></tr>
+                <tr><td>Moon Z</td> <td id="tel-moon-z">0</td>        <td>km</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="telem-section telem-section-wide">
+            <h2>Mission Phase Timeline</h2>
+            <table class="data-table">
+              <thead>
+                <tr><th>Phase</th><th>Start MET</th><th>End MET</th><th>Status</th></tr>
+              </thead>
+              <tbody id="mission-timeline-body">
+                <!-- Populated by ui.js -->
+              </tbody>
+            </table>
+          </div>
+
+        </div><!-- /telem-tables-grid -->
+      </div><!-- /telem-container -->
+    </div><!-- /view-telemetry -->
+
+
+    <!-- ╔══════════════════════════════════════════════════════════════════╗
+         ║  VIEW 3 — Mission Info / About                                   ║
+         ╚══════════════════════════════════════════════════════════════════╝ -->
+    <div id="view-about" class="view">
+      <div class="about-container">
+        <div class="about-hero">
+          <h1>Artemis II</h1>
+          <p class="about-tagline">Humanity's Return to the Moon</p>
+        </div>
+        <div id="about-content">
+          <!-- Populated by ui.js -->
+        </div>
+      </div>
+    </div><!-- /view-about -->
+
+  </main><!-- /app -->
+
+  <!-- Entry module -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARTEMIS TRACKER — Test Suite</title>
+  <style>
+    :root {
+      --bg:       #03050f;
+      --panel:    #080e1c;
+      --card:     #0d1528;
+      --border:   #1a3060;
+      --cyan:     #00c8ff;
+      --green:    #00e676;
+      --red:      #ff4444;
+      --amber:    #ffb300;
+      --text:     #e8f0ff;
+      --muted:    #8cadd8;
+      --dim:      #4a6a9a;
+      --mono:     'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-title {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--cyan);
+    }
+
+    .header-sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
+
+    .btn-run {
+      padding: 10px 24px;
+      background: #0055cc;
+      border: 1px solid var(--cyan);
+      border-radius: 6px;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-run:hover { background: #0077ff; }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Summary bar ── */
+    .summary-bar {
+      display: flex;
+      gap: 12px;
+      padding: 12px 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .summary-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 16px;
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .summary-card .label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; }
+    .summary-card .value { font-family: var(--mono); font-size: 22px; font-weight: 700; margin-top: 2px; }
+    .val-total   { color: var(--cyan);  }
+    .val-passed  { color: var(--green); }
+    .val-failed  { color: var(--red);   }
+    .val-time    { color: var(--amber); font-size: 16px; }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      margin: 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    /* ── Test groups ── */
+    .test-content { padding: 20px 24px; }
+
+    .test-group { margin-bottom: 24px; }
+
+    .group-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      padding: 8px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px 6px 0 0;
+      border-bottom: 2px solid var(--cyan);
+    }
+
+    .test-list {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+    }
+
+    .test-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(26, 48, 96, 0.4);
+      transition: background 0.1s;
+    }
+    .test-item:last-child { border-bottom: none; }
+    .test-item:hover { background: rgba(0, 100, 200, 0.05); }
+
+    .test-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .test-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .test-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      flex-shrink: 0;
+    }
+
+    .test-error {
+      grid-column: 1 / -1;
+      margin-top: 4px;
+      padding: 6px 10px;
+      background: rgba(255, 68, 68, 0.08);
+      border-left: 3px solid var(--red);
+      border-radius: 0 4px 4px 0;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--red);
+      word-break: break-word;
+    }
+
+    .test-item-inner {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Status indicator */
+    .test-status-pass { color: var(--green); }
+    .test-status-fail { color: var(--red);   }
+    .test-status-pend { color: var(--dim);   }
+
+    /* State: pending, running, done */
+    .state-pending  .test-name  { color: var(--muted); }
+    .state-running              { background: rgba(0,100,200,0.08) !important; }
+    .state-pass                 { }
+    .state-fail                 { background: rgba(255,68,68,0.04); }
+
+    /* ── Log area ── */
+    .log-area {
+      margin: 0 24px 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--dim);
+      max-height: 140px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── Status badge ── */
+    .overall-badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+    .badge-pass { background: rgba(0,230,118,0.15); border: 1px solid var(--green); color: var(--green); }
+    .badge-fail { background: rgba(255,68,68,0.15);  border: 1px solid var(--red);   color: var(--red);   }
+    .badge-none { background: rgba(74,106,154,0.15); border: 1px solid var(--dim);   color: var(--dim);   }
+
+    /* Back link */
+    .back-link {
+      font-size: 12px;
+      color: var(--dim);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .back-link:hover { color: var(--cyan); }
+  </style>
+
+  <!-- Import map — same as main app -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three":         "https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+
+  <!-- Hidden app shell so router & DOM tests work -->
+  <div id="app" style="display:none">
+    <div id="view-visualization" class="view active"></div>
+    <div id="view-telemetry" class="view"></div>
+    <div id="view-about" class="view"></div>
+  </div>
+  <nav style="display:none">
+    <a class="nav-link" data-view="visualization" href="#/"></a>
+    <a class="nav-link" data-view="telemetry" href="#/telemetry"></a>
+    <a class="nav-link" data-view="about" href="#/about"></a>
+  </nav>
+
+  <!-- ── Header ───────────────────────────────────────────────────────── -->
+  <div class="header">
+    <div>
+      <div class="header-title">🧪 ARTEMIS TRACKER — Test Suite</div>
+      <div class="header-sub">
+        Automated tests for trajectory model, router, and utilities
+        &nbsp;|&nbsp;
+        <a href="../index.html" class="back-link">← Back to App</a>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span id="overall-badge" class="overall-badge badge-none">NOT RUN</span>
+      <button class="btn-run" id="btn-run">▶ Run All Tests</button>
+    </div>
+  </div>
+
+  <!-- ── Summary ──────────────────────────────────────────────────────── -->
+  <div class="summary-bar">
+    <div class="summary-card">
+      <div class="label">Total</div>
+      <div class="value val-total" id="stat-total">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Passed</div>
+      <div class="value val-passed" id="stat-passed">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Failed</div>
+      <div class="value val-failed" id="stat-failed">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Duration</div>
+      <div class="value val-time" id="stat-time">—</div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+  <!-- ── Test content area ─────────────────────────────────────────────── -->
+  <div class="test-content" id="test-content">
+    <p style="color:var(--dim); font-size:13px; padding: 20px 0;">
+      Click <strong style="color:var(--cyan)">Run All Tests</strong> to execute the test suite.
+    </p>
+  </div>
+
+  <!-- ── Log ───────────────────────────────────────────────────────────── -->
+  <pre class="log-area" id="log-area">Test output will appear here…</pre>
+
+  <!-- Catch module-load errors and surface them visibly -->
+  <script>
+    window.addEventListener('error', function(e) {
+      const log = document.getElementById('log-area');
+      if (log) log.textContent = 'Module load error: ' + (e.message || e) + '\n\nEnsure the app is served via http://localhost:8080/ (not opened as a file://).';
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      const log = document.getElementById('log-area');
+      if (log) log.textContent = 'Unhandled rejection: ' + (e.reason?.message || e.reason);
+    });
+  </script>
+
+  <script type="module">
+    import { runAll } from './tests.js';
+
+    // We also need the router to be set up for DOM tests
+    // Minimal router re-implementation for test environment
+    function setupRouter() {
+      function navigate() {
+        const hash  = window.location.hash.replace('#', '') || '/';
+        const map   = { '/': 'visualization', '/telemetry': 'telemetry', '/about': 'about' };
+        const view  = map[hash] ?? 'visualization';
+        document.querySelectorAll('.view').forEach(v  => v.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(`view-${view}`)?.classList.add('active');
+        document.querySelector(`.nav-link[data-view="${view}"]`)?.classList.add('active');
+      }
+      window.addEventListener('hashchange', navigate);
+      navigate();
+    }
+    setupRouter();
+
+    const log     = document.getElementById('log-area');
+    const content = document.getElementById('test-content');
+    const btnRun  = document.getElementById('btn-run');
+
+    function appendLog(msg) {
+      log.textContent += msg + '\n';
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Group definitions for display
+    const GROUPS = [
+      { title: 'Moon Position Tests',          prefix: 'Moon' },
+      { title: 'Spacecraft Position Tests',    prefix: 'Spacecraft' },
+      { title: 'Mission Phase Tests',          prefix: 'Phase' },
+      { title: 'MET Formatting Tests',         prefix: 'formatMET' },
+      { title: 'Velocity & Distance Tests',    prefix: 'Velocity|Altitude|Distance|getAlt' },
+      { title: 'Mission Date Tests',           prefix: 'getMission' },
+      { title: 'Trajectory Points Tests',      prefix: 'trajectoryPoints|Trajectory first|Trajectory last|Trajectory has' },
+      { title: 'Continuity & Boundary Tests',  prefix: 'Position changes|getSpacecraft.*clamp|Boundary|clamps' },
+      { title: 'Router Tests',                 prefix: 'Navigating|Only one|Nav link' },
+      { title: 'Utility & Constants Tests',    prefix: 'Distance formula|constants|Playback|Mission has|All phase|getMoonAngle' },
+    ];
+
+    function groupResults(results) {
+      const groups  = GROUPS.map(g => ({ ...g, tests: [] }));
+      const other   = { title: 'Other Tests', tests: [] };
+
+      results.forEach(r => {
+        let matched = false;
+        for (const g of groups) {
+          const re = new RegExp(g.prefix, 'i');
+          if (re.test(r.name)) { g.tests.push(r); matched = true; break; }
+        }
+        if (!matched) other.tests.push(r);
+      });
+
+      return [...groups.filter(g => g.tests.length > 0),
+              ...(other.tests.length ? [other] : [])];
+    }
+
+    function renderResults(results) {
+      const grouped = groupResults(results);
+      const passed  = results.filter(r => r.passed).length;
+      const failed  = results.length - passed;
+      const totalMs = results.reduce((s, r) => s + r.ms, 0);
+
+      // Update stats
+      document.getElementById('stat-total').textContent  = results.length;
+      document.getElementById('stat-passed').textContent = passed;
+      document.getElementById('stat-failed').textContent = failed;
+      document.getElementById('stat-time').textContent   = totalMs.toFixed(0) + ' ms';
+      document.getElementById('progress').style.width    = `${(passed / results.length) * 100}%`;
+
+      const badge = document.getElementById('overall-badge');
+      if (failed === 0) {
+        badge.textContent = 'ALL PASSED';
+        badge.className   = 'overall-badge badge-pass';
+      } else {
+        badge.textContent = `${failed} FAILED`;
+        badge.className   = 'overall-badge badge-fail';
+      }
+
+      // Render groups
+      let html = '';
+      grouped.forEach(g => {
+        const gPassed = g.tests.filter(t => t.passed).length;
+        const gTotal  = g.tests.length;
+        html += `<div class="test-group">
+          <div class="group-title">
+            ${g.title}
+            <span style="float:right; font-size:10px; color:${gPassed===gTotal?'var(--green)':'var(--red)'}">
+              ${gPassed}/${gTotal}
+            </span>
+          </div>
+          <div class="test-list">`;
+
+        g.tests.forEach(t => {
+          const icon  = t.passed ? '✅' : '❌';
+          const cls   = t.passed ? 'state-pass' : 'state-fail';
+          html += `
+            <div class="test-item ${cls}">
+              <span class="test-icon">${icon}</span>
+              <div class="test-item-inner">
+                <div class="test-name">${t.name}</div>
+                ${t.error ? `<div class="test-error">⚠ ${t.error}</div>` : ''}
+              </div>
+              <span class="test-time">${t.ms.toFixed(1)} ms</span>
+            </div>`;
+        });
+
+        html += `</div></div>`;
+      });
+
+      content.innerHTML = html;
+    }
+
+    btnRun.addEventListener('click', async () => {
+      btnRun.disabled   = true;
+      btnRun.textContent = '⏳ Running…';
+      log.textContent   = 'Starting test suite…\n';
+      content.innerHTML = '<p style="color:var(--dim);padding:20px 0;">Running tests…</p>';
+
+      // Reset stats
+      ['stat-total','stat-passed','stat-failed','stat-time'].forEach(id =>
+        document.getElementById(id).textContent = '…');
+      document.getElementById('progress').style.width = '0%';
+
+      const startT = performance.now();
+      appendLog(`[${new Date().toISOString()}] Test run started`);
+
+      try {
+        const results = await runAll();
+        const elapsed  = (performance.now() - startT).toFixed(0);
+        const passed   = results.filter(r => r.passed).length;
+        const failed   = results.length - passed;
+
+        appendLog(`\nCompleted ${results.length} tests in ${elapsed} ms`);
+        appendLog(`✅ Passed: ${passed}   ❌ Failed: ${failed}`);
+
+        if (failed > 0) {
+          appendLog('\nFailed tests:');
+          results.filter(r => !r.passed).forEach(r =>
+            appendLog(`  • ${r.name}\n    ${r.error}`));
+        }
+
+        renderResults(results);
+      } catch (err) {
+        appendLog('ERROR: ' + err.message);
+        content.innerHTML = `<p style="color:var(--red); padding:20px 0;">
+          Fatal error during test run: ${err.message}<br>
+          <small>${err.stack || ''}</small>
+        </p>`;
+      }
+
+      btnRun.disabled   = false;
+      btnRun.textContent = '▶ Run All Tests';
+    });
+  </script>
+
+</body>
+</html>
