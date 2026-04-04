@@ -16,7 +16,7 @@
 
 import { CONFIG } from './config.js';
 
-const STORAGE_KEY = 'artemis2_live_track_v2';
+const STORAGE_KEY = 'artemis2_live_track_v3';
 
 export class LiveTracker {
   constructor() {

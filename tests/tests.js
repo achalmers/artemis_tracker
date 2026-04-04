@@ -55,10 +55,13 @@ export function registerTrajectoryTests(runner) {
       'Moon distance should be ~384 400 km');
   });
 
-  runner.test('Moon at T+0 is near +X axis (initial angle = 0)', () => {
+  runner.test('Moon at T+0 is at correct angle (EME2000-aligned, near -X)', () => {
     const m = traj.getMoonPosition(0);
-    assertClose(m.x, traj.MOON_ORBITAL_RADIUS_KM, 5000, 'Moon X');
-    assertClose(Math.abs(m.z), 0, 5000, 'Moon Z ~0 at t=0');
+    // Moon starts at MOON_INITIAL_DEG ≈ -169.93° — verify direction matches
+    const expectedAngle = traj.MOON_INITIAL_DEG * Math.PI / 180;
+    const actualAngle   = Math.atan2(m.z, m.x);
+    assertClose(actualAngle, expectedAngle, 0.01, 'Moon angle at T=0');
+    assert(m.x < 0, 'Moon X should be negative at launch (near -X)');
   });
 
   runner.test('Moon returns to initial position after one full period', () => {
@@ -68,11 +71,10 @@ export function registerTrajectoryTests(runner) {
     assertClose(m0.z, m1.z, 200, 'Moon Z after one period');
   });
 
-  runner.test('Moon moves counterclockwise (Z increases from 0 with time)', () => {
-    const m6  = traj.getMoonPosition(6);
-    const m12 = traj.getMoonPosition(12);
-    assertGt(m6.z,  0,     'Moon Z positive after 6 h');
-    assertGt(m12.z, m6.z,  'Moon Z greater after 12 h than 6 h');
+  runner.test('Moon moves counterclockwise (angle increases with time)', () => {
+    const a6  = traj.getMoonAngleDeg(6);
+    const a12 = traj.getMoonAngleDeg(12);
+    assertGt(a12, a6, 'Moon angle should increase from 6h to 12h (counterclockwise)');
   });
 
   // ── Spacecraft position ────────────────────────────────────────────────
@@ -273,8 +275,8 @@ export function registerTrajectoryTests(runner) {
     assertClose(mag(p240), mag(p300), 1, 'MET > 240h clamped to 240h');
   });
 
-  runner.test('getMoonAngleDeg(0) = 0', () => {
-    assertClose(traj.getMoonAngleDeg(0), 0, 0.01);
+  runner.test('getMoonAngleDeg(0) = MOON_INITIAL_DEG', () => {
+    assertClose(traj.getMoonAngleDeg(0), traj.MOON_INITIAL_DEG, 0.01);
   });
 
   runner.test('getMoonAngleDeg increases with time', () => {

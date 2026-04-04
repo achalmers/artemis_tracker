@@ -1,7 +1,9 @@
 // trajectory.js — Artemis 2 Mission Trajectory Calculator
-// Coordinate system: Earth at origin, Y-up (north pole), Moon initially along +X axis,
-// Z completes the right-hand system. Moon orbits counterclockwise in XZ plane when
-// viewed from above (+Y). Distances in km.
+// Coordinate system: Earth at origin, Y-up (north pole). Scene X/Z aligned with EME2000
+// equatorial plane (scene.x = EME2000.x, scene.y = EME2000.z, scene.z = EME2000.y).
+// MOON_INITIAL_DEG is set from JPL Horizons Moon position at launch so the model
+// coordinate frame matches the live EME2000 data from artemistracker.com.
+// Distances in km.
 
 export class Trajectory {
   constructor() {
@@ -17,7 +19,10 @@ export class Trajectory {
     // Launch epoch from artemistracker.com site data ≈ 2026-04-01T22:21:52Z
     this.MISSION_START_UTC    = new Date(1775082912000);
     this.MISSION_DURATION_H   = 240;      // 10 days
-    this.MOON_INITIAL_DEG     = 0;        // Moon starts at +X axis at T+0
+    // Moon angle in scene XZ at launch — derived from JPL Horizons EME2000 Moon
+    // position at 2026-Apr-01 22:35 UTC: scene(x,z) = (-386582, -68681) km
+    // atan2(-68681, -386582) = -169.93° (190.07° CCW from +X)
+    this.MOON_INITIAL_DEG     = -169.93;
 
     // ── Playback state ──────────────────────────────────────────────────────
     this.currentMET   = 0;       // Mission Elapsed Time, hours
@@ -44,45 +49,46 @@ export class Trajectory {
 
   // ── Keyframe table ────────────────────────────────────────────────────────
   // Each entry: [t_hours, x_km, y_km, z_km]
-  // Moon at T+75 h ≈ (289 100, 0, 253 300) km  →  S/C closest approach ~8 300 km
+  // All XZ coordinates rotated by -169.93° to align scene frame with EME2000
+  // (Moon starts at scene angle -169.93° matching JPL Horizons data at launch).
+  // S/C closest Moon approach at T+75h ≈ 5 200 km.
   _buildKeyframes() {
-    const R = this.EARTH_RADIUS_KM + this.LEO_ALTITUDE_KM;  // 6571 km
     return [
-      // ── Parking orbit – 2 circular orbits in XZ plane (Y=0) ──────────────
-      [0,     0,        0,     R      ],   // launch / LEO insertion
-      [0.74,  R,        0,     0      ],   // 90°
-      [1.47,  0,        0,    -R      ],   // 180°
-      [2.21, -R,        0,     0      ],   // 270°
-      [2.94,  0,        0,     R      ],   // 360° – TLI point  (2 orbits)
+      // ── Parking orbit – 2 circular orbits ─────────────────────────────────
+      [0,      1149,      0,    -6470],   // launch / LEO insertion
+      [0.74,  -6470,      0,    -1149],   // 90°
+      [1.47,  -1149,      0,     6470],   // 180°
+      [2.21,   6470,      0,     1149],   // 270°
+      [2.94,   1149,      0,    -6470],   // 360° – TLI point (2 orbits)
 
       // ── Translunar coast – arc toward Moon ────────────────────────────────
-      [5,      5000,    2000,  14000  ],
-      [15,    28000,    4500,  52000  ],
-      [30,    74000,    6500, 116000  ],
-      [45,   140000,    5500, 179000  ],
-      [60,   204000,    3000, 225000  ],
-      [70,   258000,     900, 253000  ],
+      [5,     -2474,   2000,   -14659],
+      [15,   -18472,   4500,   -56096],
+      [30,   -52568,   6500,  -127156],
+      [45,  -106530,   5500,  -200729],
+      [60,  -161497,   3000,  -257215],
+      [70,  -209767,    900,  -294229],
 
       // ── Lunar approach & flyby ────────────────────────────────────────────
-      [73,   277000,     400, 248000  ],   // entering lunar SOI
-      [74,   283000,    1800, 250000  ],
-      [75,   287000,    4500, 258000  ],   // closest approach (≈ 8 300 km from Moon centre)
-      [76,   291000,    2800, 253000  ],
-      [77.5, 296000,     900, 247000  ],
-      [79,   300000,       0, 242000  ],   // departing Moon region
+      [73,  -229348,    400,  -292630],   // entering lunar SOI
+      [74,  -234906,   1800,  -295649],
+      [75,  -237445,   4500,  -304225],   // closest approach (~5 200 km from Moon)
+      [76,  -242258,   2800,  -300002],
+      [77.5,-248230,    900,  -294969],
+      [79,  -253043,      0,  -290746],   // departing Moon region
 
       // ── Return coast ──────────────────────────────────────────────────────
-      [95,   295000,  -3000, 218000  ],
-      [115,  271000,  -6000, 178000  ],
-      [140,  231000,  -8000, 132000  ],
-      [165,  177000,  -7500,  83000  ],
-      [190,  114000,  -5500,  39000  ],
-      [210,   59000,  -3500,  11500  ],
-      [225,   21500,  -1500,   3400  ],
-      [232,    8800,   -480,   1150  ],   // Entry Interface  (≈ 122 km alt)
-      [237,    7100,   -145,    390  ],
-      [239,    6500,    -40,    100  ],
-      [240,       0,      0,   6371  ],   // splashdown (Earth surface, Pacific)
+      [95,  -252319,  -3000,  -266241],
+      [115, -235685,  -6000,  -222660],
+      [140, -204349,  -8000,  -170372],
+      [165, -159752,  -7500,  -112682],
+      [190, -105420,  -5500,   -58340],
+      [210,  -56079,  -3500,   -21643],
+      [225,  -20574,  -1500,    -7108],
+      [232,   -8463,   -480,    -2672],   // Entry Interface (≈ 122 km alt)
+      [237,   -6922,   -145,    -1626],
+      [239,   -6382,    -40,    -1235],
+      [240,    1114,      0,    -6273],   // splashdown (Earth surface, Pacific)
     ];
   }
 
@@ -95,7 +101,7 @@ export class Trajectory {
     const R      = this.MOON_ORBITAL_RADIUS_KM;
     return {
       x:  R * Math.cos(angle),
-      y:  R * Math.sin(angle) * 0.089,   // ≈ 5.1° inclination
+      y:  0,   // simplified model: Moon orbits in equatorial plane (XZ)
       z:  R * Math.sin(angle),
     };
   }
