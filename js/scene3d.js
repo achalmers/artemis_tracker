@@ -75,27 +75,18 @@ export class Scene3D {
     const mp = this.trajectory.getMoonPosition(met);
     this.moonMesh.position.set(mp.x * S, mp.y * S, mp.z * S);
 
-    // Model spacecraft (amber) — always follows the time slider
+    // Spacecraft position — computed from the same trajectory as the blue line
     const sp = this.trajectory.getSpacecraftPosition(met);
     const sv = new THREE.Vector3(sp.x * S, sp.y * S, sp.z * S);
     this.scMesh.position.copy(sv);
     if (this.scGlow) this.scGlow.position.copy(sv);
 
-    // When NO live data: show model-based red flown track
-    if (!this._hasLiveData) {
-      const idx = Math.floor((met / this.trajectory.MISSION_DURATION_H) * (this._totalPoints - 1));
-      if (idx !== this._prevIndex) {
-        this.trackDone.geometry.setDrawRange(0, Math.max(2, idx + 1));
-        this._prevIndex = idx;
-      }
-    }
-
-    // Pulse animation for live dot
-    if (this.liveDot && this.liveGlow) {
-      this._pulseT += 0.04;
-      const pulse = 0.5 + 0.5 * Math.sin(this._pulseT);
-      this.liveGlow.material.opacity = 0.35 + 0.45 * pulse;
-      this.liveGlow.scale.setScalar(0.55 + 0.35 * pulse);
+    // Pulse animation for the model spacecraft circle
+    this._pulseT += 0.04;
+    const pulse = 0.5 + 0.5 * Math.sin(this._pulseT);
+    if (this.scGlow) {
+      this.scGlow.material.opacity = 0.15 + 0.20 * pulse;
+      this.scGlow.scale.setScalar(0.65 + 0.20 * pulse);
     }
 
     // Slow Earth rotation
@@ -104,10 +95,9 @@ export class Scene3D {
     // Labels
     if (this.showLabels) this._updateLabels(met, mp, sp);
 
-    // Camera follow — track the live dot if present, otherwise the model spacecraft
+    // Camera follow — always track the model spacecraft (red circle on the blue line)
     if (this.followSC) {
-      const target = this.liveDot ? this.liveDot.position : sv;
-      this.controls.target.lerp(target, 0.05);
+      this.controls.target.lerp(sv, 0.05);
     }
 
     this.controls.update();
@@ -119,71 +109,18 @@ export class Scene3D {
     const S = KM_TO_UNIT;
     this._hasLiveData = true;
 
-    // Hide the model-based red track — live track replaces it
+    // Hide the model-based flown track — live track replaces it
     if (this.trackDone) this.trackDone.visible = false;
 
-    // ── 1. Rebuild the red "actual flown track" line ──────────────────────
-    if (history.length >= 2) {
-      const pts = history.map(p => new THREE.Vector3(p.x * S, p.y * S, p.z * S));
-      const newGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    // Always show the FULL intended (blue) trajectory — never trimmed
+    this.trackFull.geometry.setDrawRange(0, this._totalPoints);
 
-      if (this.liveTrackLine) {
-        this.liveTrackLine.geometry.dispose();
-        this.liveTrackLine.geometry = newGeo;
-      } else {
-        this.liveTrackLine = new THREE.Line(
-          newGeo,
-          new THREE.LineBasicMaterial({ color: 0xff2222, transparent: true, opacity: 0.95 })
-        );
-        this.scene.add(this.liveTrackLine);
-      }
-    }
-
-    // ── 2. Move the red live dot to current position ──────────────────────
-    if (currentFix) {
-      const lp = new THREE.Vector3(currentFix.x * S, currentFix.y * S, currentFix.z * S);
-
-      if (!this.liveDot) {
-        // Create dot on first fix
-        const geo = new THREE.SphereGeometry(0.18, 16, 8);
-        const mat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
-        this.liveDot = new THREE.Mesh(geo, mat);
-        this.scene.add(this.liveDot);
-
-        // Glow sprite around the dot
-        const glowMat = new THREE.SpriteMaterial({
-          color:    0xff4444,
-          transparent: true,
-          opacity:  0.5,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        });
-        this.liveGlow = new THREE.Sprite(glowMat);
-        this.liveGlow.scale.set(0.7, 0.7, 1);
-        this.scene.add(this.liveGlow);
-
-        // "LIVE" label
-        if (this._labelRoot) {
-          this.liveLabel = this._makeLabel('◉ LIVE', 0xff4444);
-          this._labelRoot.add(this.liveLabel);
-        }
-      }
-
-      this.liveDot.position.copy(lp);
-      this.liveGlow.position.copy(lp);
-      if (this.liveLabel) this.liveLabel.position.set(lp.x, lp.y + 0.5, lp.z);
-
-      // ── 3. Trim cyan intended-track to future only ──────────────────────
-      // Compute live MET from the fix UTC and the mission launch time
-      if (launchDate && currentFix.utc) {
-        const liveMET = (new Date(currentFix.utc) - launchDate) / 3_600_000; // hours
-        const futIdx  = Math.max(0, Math.floor(
-          (liveMET / this.trajectory.MISSION_DURATION_H) * (this._totalPoints - 1)
-        ));
-        // Show only the tail of the cyan model trajectory (= intended future track)
-        this.trackFull.geometry.setDrawRange(futIdx, this._totalPoints - futIdx);
-      }
-    }
+    // ── The red circle (scMesh) is the primary spacecraft position marker.
+    //       It is driven by getSpacecraftPosition(liveMET) in update(), which
+    //       uses the same Catmull-Rom interpolation as the blue trajectory line,
+    //       so it always sits exactly on the blue line.
+    //       No separate liveDot is created — it would sit off the intended track
+    //       and cause visual confusion.
   }
 
   // ── Camera presets ────────────────────────────────────────────────────────
@@ -359,46 +296,56 @@ export class Scene3D {
       positions[i*3 + 2] = p.z * S;
     });
 
-    // Full trajectory — intended/future track in cyan
+    // Full trajectory — intended track in blue
     const geoFull = new THREE.BufferGeometry();
     geoFull.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3));
     this.trackFull = new THREE.Line(geoFull, new THREE.LineBasicMaterial({
-      color: 0x00d4ff, transparent: true, opacity: 0.55,
+      color: 0x2266ff, transparent: true, opacity: 0.80,
     }));
     this.scene.add(this.trackFull);
 
-    // Completed trajectory — actual flown track in red
-    const geoDone = new THREE.BufferGeometry();
-    geoDone.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3));
-    geoDone.setDrawRange(0, 2);
-    this.trackDone = new THREE.Line(geoDone, new THREE.LineBasicMaterial({
-      color: 0xff2222, transparent: true, opacity: 0.95,
-    }));
-    this.scene.add(this.trackDone);
+    this.trackDone = null;  // red flown track removed — blue intended line only
   }
 
   _createSpacecraft() {
-    // Small octahedron to represent the capsule
-    const geo = new THREE.OctahedronGeometry(0.12, 0);
-    const mat = new THREE.MeshPhongMaterial({
-      color:    0xf0c060,
-      emissive: 0x804000,
-      specular: 0xffffff,
-      shininess: 80,
+    // Red circle ring sprite — always faces the camera, sits on the blue trajectory line
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, 128, 128);
+    // Semi-transparent fill
+    ctx.beginPath();
+    ctx.arc(64, 64, 46, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 34, 34, 0.22)';
+    ctx.fill();
+    // Bright ring outline
+    ctx.beginPath();
+    ctx.arc(64, 64, 50, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ff2222';
+    ctx.lineWidth = 10;
+    ctx.stroke();
+
+    const tex = new THREE.CanvasTexture(cv);
+    const mat = new THREE.SpriteMaterial({
+      map:        tex,
+      transparent: true,
+      depthTest:  false,
+      depthWrite: false,
     });
-    this.scMesh = new THREE.Mesh(geo, mat);
+    this.scMesh = new THREE.Sprite(mat);
+    this.scMesh.scale.set(0.45, 0.45, 1);
     this.scene.add(this.scMesh);
 
-    // Glow sprite
+    // Red additive glow behind the circle
     const glowMat = new THREE.SpriteMaterial({
-      color:       0xffee88,
+      color:      0xff2222,
       transparent: true,
-      opacity:     0.6,
-      depthWrite:  false,
-      blending:    THREE.AdditiveBlending,
+      opacity:    0.28,
+      depthWrite: false,
+      blending:   THREE.AdditiveBlending,
     });
     this.scGlow = new THREE.Sprite(glowMat);
-    this.scGlow.scale.set(0.6, 0.6, 1);
+    this.scGlow.scale.set(0.75, 0.75, 1);
     this.scene.add(this.scGlow);
   }
 
@@ -442,11 +389,9 @@ export class Scene3D {
     if (this.moonLabel)
       this.moonLabel.position.set(mp.x * S, mp.y * S + 0.6, mp.z * S);
     if (this.scLabel) {
-      // When live data is present, the ORION label follows the live dot
-      const pos = (this._hasLiveData && this.liveDot) ? this.liveDot.position : new THREE.Vector3(sp.x * S, sp.y * S, sp.z * S);
-      this.scLabel.position.set(pos.x, pos.y + 0.4, pos.z);
+      // ORION label always follows the model spacecraft (red circle on the blue line)
+      this.scLabel.position.set(sp.x * S, sp.y * S + 0.4, sp.z * S);
     }
-    // liveLabel position is updated in updateLiveData()
   }
 
   _createOrbitalGrid() {

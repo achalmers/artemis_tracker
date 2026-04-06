@@ -361,6 +361,10 @@ a { color: var(--accent-1); text-decoration: none; }
 .data-table tr.live-row.live-row-active td { color: #ff6666; }
 .data-table tr.live-row.live-row-active td:nth-child(2) { color: #ff4444; font-weight: 700; }
 
+/* Mission event highlight row */
+.data-table tr.event-highlight td { color: #aaccff; }
+.data-table tr.event-highlight td:nth-child(3) { color: #66aaff; font-weight: 600; font-family: var(--text-mono); font-size: 12px; }
+
 /* Track colour legend */
 .track-legend {
   display: flex; align-items: center; flex-wrap: wrap; gap: 4px;

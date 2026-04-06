@@ -16,13 +16,16 @@ export class Trajectory {
     this.LEO_ALTITUDE_KM        = 200;
 
     // ── Mission parameters ──────────────────────────────────────────────────
-    // Launch epoch from artemistracker.com site data ≈ 2026-04-01T22:21:52Z
+    // Launch epoch: 2026-04-01 22:35 UTC  (epoch ms from artemistracker.com)
     this.MISSION_START_UTC    = new Date(1775082912000);
     this.MISSION_DURATION_H   = 240;      // 10 days
     // Moon angle in scene XZ at launch — derived from JPL Horizons EME2000 Moon
     // position at 2026-Apr-01 22:35 UTC: scene(x,z) = (-386582, -68681) km
     // atan2(-68681, -386582) = -169.93° (190.07° CCW from +X)
     this.MOON_INITIAL_DEG     = -169.93;
+    // NASA confirmed closest Moon approach: 2026-Apr-06 18:35 EDT = 22:35 UTC = T+120h.
+    // Moon ECI at T+120h: (-92 986, 0, -373 019) km.
+    // Closest approach keyframe places S/C ~11 200 km from Moon centre (≈9 450 km surface).
 
     // ── Playback state ──────────────────────────────────────────────────────
     this.currentMET   = 0;       // Mission Elapsed Time, hours
@@ -34,10 +37,10 @@ export class Trajectory {
       { id: 'ascent',          name: 'Ascent',            start: 0,     end: 0.15  },
       { id: 'parking_orbit',   name: 'Parking Orbit',     start: 0.15,  end: 2.94  },
       { id: 'tli',             name: 'TLI Burn',          start: 2.94,  end: 3.1   },
-      { id: 'translunar',      name: 'Translunar Coast',  start: 3.1,   end: 73    },
-      { id: 'lunar_approach',  name: 'Lunar Approach',    start: 73,    end: 75    },
-      { id: 'lunar_flyby',     name: 'Lunar Flyby',       start: 75,    end: 78    },
-      { id: 'return',          name: 'Return Coast',      start: 78,    end: 232   },
+      { id: 'translunar',      name: 'Translunar Coast',  start: 3.1,   end: 117   },
+      { id: 'lunar_approach',  name: 'Lunar Approach',    start: 117,   end: 120   },
+      { id: 'lunar_flyby',     name: 'Lunar Flyby',       start: 120,   end: 126   },
+      { id: 'return',          name: 'Return Coast',      start: 126,   end: 232   },
       { id: 'reentry',         name: 'Reentry',           start: 232,   end: 239   },
       { id: 'splashdown',      name: 'Splashdown',        start: 239,   end: 240   },
     ];
@@ -48,47 +51,50 @@ export class Trajectory {
   }
 
   // ── Keyframe table ────────────────────────────────────────────────────────
-  // Each entry: [t_hours, x_km, y_km, z_km]
-  // All XZ coordinates rotated by -169.93° to align scene frame with EME2000
-  // (Moon starts at scene angle -169.93° matching JPL Horizons data at launch).
-  // S/C closest Moon approach at T+75h ≈ 5 200 km.
+  // Each entry: [t_hours, x_km, y_km, z_km]  — ECI scene frame (Y = north)
+  // Translunar coast arcs toward the Moon's ECI position at T+120h:
+  //   Moon angle at T+120h = -169.93 + 0.5494×120 = -104.00°
+  //   Moon ECI = (-92 986, 0, -373 019) km
+  // S/C closest approach at T+120h: ~11 200 km from Moon centre (≈9 450 km surface)
   _buildKeyframes() {
     return [
       // ── Parking orbit – 2 circular orbits ─────────────────────────────────
-      [0,      1149,      0,    -6470],   // launch / LEO insertion
-      [0.74,  -6470,      0,    -1149],   // 90°
-      [1.47,  -1149,      0,     6470],   // 180°
-      [2.21,   6470,      0,     1149],   // 270°
-      [2.94,   1149,      0,    -6470],   // 360° – TLI point (2 orbits)
+      [0,      1149,     0,     -6470],   // launch / LEO insertion
+      [0.74,  -6470,     0,     -1149],   // 90°
+      [1.47,  -1149,     0,      6470],   // 180°
+      [2.21,   6470,     0,      1149],   // 270°
+      [2.94,   1149,     0,     -6470],   // 360° – TLI point (2 orbits)
 
-      // ── Translunar coast – arc toward Moon ────────────────────────────────
-      [5,     -2474,   2000,   -14659],
-      [15,   -18472,   4500,   -56096],
-      [30,   -52568,   6500,  -127156],
-      [45,  -106530,   5500,  -200729],
-      [60,  -161497,   3000,  -257215],
-      [70,  -209767,    900,  -294229],
+      // ── Translunar coast – arc toward Moon at T+120h ──────────────────────
+      // Intermediate positions interpolated along the straight-line ECI chord
+      // TLI→approach with a modest out-of-plane (y) excursion.
+      [5,      -265,   100,    -12700],
+      [10,    -3840,   280,    -28460],
+      [20,   -10908,   700,    -59600],
+      [40,   -25126,  1300,   -122300],
+      [60,   -39345,  1500,   -185000],
+      [80,   -53563,  1300,   -247700],
+      [100,  -67781,   800,   -310300],
+      [114,  -77750,   333,   -354200],
+      [118,  -80606,   100,   -366900],
 
       // ── Lunar approach & flyby ────────────────────────────────────────────
-      [73,  -229348,    400,  -292630],   // entering lunar SOI
-      [74,  -234906,   1800,  -295649],
-      [75,  -237445,   4500,  -304225],   // closest approach (~5 200 km from Moon)
-      [76,  -242258,   2800,  -300002],
-      [77.5,-248230,    900,  -294969],
-      [79,  -253043,      0,  -290746],   // departing Moon region
+      [119,  -81500,   500,   -370000],   // entering lunar SOI
+      [120,  -82000,  2000,   -373019],   // closest approach (NASA: Apr-06 18:35 EDT)
+      [121,  -84000,  2000,   -375000],
+      [123,  -90000,  1000,   -376000],
+      [126, -100000,   100,   -374000],   // departing Moon region
 
       // ── Return coast ──────────────────────────────────────────────────────
-      [95,  -252319,  -3000,  -266241],
-      [115, -235685,  -6000,  -222660],
-      [140, -204349,  -8000,  -170372],
-      [165, -159752,  -7500,  -112682],
-      [190, -105420,  -5500,   -58340],
-      [210,  -56079,  -3500,   -21643],
-      [225,  -20574,  -1500,    -7108],
-      [232,   -8463,   -480,    -2672],   // Entry Interface (≈ 122 km alt)
-      [237,   -6922,   -145,    -1626],
-      [239,   -6382,    -40,    -1235],
-      [240,    1114,      0,    -6273],   // splashdown (Earth surface, Pacific)
+      [140,  -88000,  -500,   -325000],
+      [160,  -70600, -1500,   -254800],
+      [185,  -49000, -2500,   -167150],
+      [205,  -32000, -1500,    -97400],
+      [220,  -19000,  -500,    -44700],
+      [232,   -8463,  -480,     -2672],   // Entry Interface (≈ 122 km alt)
+      [237,   -6922,  -145,     -1626],
+      [239,   -6382,   -40,     -1235],
+      [240,    1114,     0,     -6273],   // splashdown (Earth surface, Pacific)
     ];
   }
 

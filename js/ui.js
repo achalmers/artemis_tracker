@@ -28,6 +28,7 @@ export class UI {
     this._bindDisplayOptions();
     this._bindLiveControls();
     this._populateMissionTimeline();
+    this._populateClosestApproach();
     this._populateAboutView();
   }
 
@@ -338,6 +339,25 @@ export class UI {
     return order.indexOf(id) < order.indexOf(activeId);
   }
 
+  _populateClosestApproach() {
+    const el = document.getElementById('tel-closest-approach');
+    if (!el) return;
+    // Closest Moon approach at T+120h (NASA confirmed: Apr-06 18:35 EDT = 22:35 UTC)
+    const d = this.traj.getMissionDate(120);
+    const eastern = d.toLocaleString('en-US', {
+      timeZone:       'America/New_York',
+      weekday:        'short',
+      month:          'short',
+      day:            'numeric',
+      year:           'numeric',
+      hour:           '2-digit',
+      minute:         '2-digit',
+      second:         '2-digit',
+      timeZoneName:   'short',
+    });
+    el.textContent = eastern;
+  }
+
   _populateAboutView() {
     const el = document.getElementById('about-content');
     if (!el) return;
@@ -356,8 +376,8 @@ export class UI {
             <li><strong>Launch:</strong> SLS Block 1 from LC-39B, Kennedy Space Center</li>
             <li><strong>Parking Orbit:</strong> 200 km circular LEO, 2 revolutions</li>
             <li><strong>TLI Burn:</strong> T+2 h 56 m — raises apogee to lunar distance</li>
-            <li><strong>Transit:</strong> ≈ 72-hour translunar coast</li>
-            <li><strong>Lunar Flyby:</strong> Free-return trajectory, closest approach ≈ 8 900 km</li>
+            <li><strong>Transit:</strong> ≈ 117-hour translunar coast (T+3h to T+120h)</li>
+            <li><strong>Lunar Flyby:</strong> Free-return trajectory, closest approach ≈ 9 450 km from lunar surface (Apr-06 18:35 EDT)</li>
             <li><strong>Return:</strong> ≈ 6-day coast back to Earth</li>
             <li><strong>Splashdown:</strong> Pacific Ocean, Day 10</li>
           </ul>

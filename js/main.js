@@ -92,31 +92,7 @@ class ArtemisApp {
     // "Clear track" button in sidebar
     window.addEventListener('artemis:clearTrack', () => {
       this.liveTracker.clearHistory();
-      // Remove the live visuals from the scene
-      if (this.scene.liveTrackLine) {
-        this.scene.scene.remove(this.scene.liveTrackLine);
-        this.scene.liveTrackLine.geometry.dispose();
-        this.scene.liveTrackLine = null;
-      }
-      if (this.scene.liveDot) {
-        this.scene.scene.remove(this.scene.liveDot);
-        this.scene.liveDot = null;
-      }
-      if (this.scene.liveGlow) {
-        this.scene.scene.remove(this.scene.liveGlow);
-        this.scene.liveGlow = null;
-      }
-      if (this.scene.liveLabel && this.scene._labelRoot) {
-        this.scene._labelRoot.remove(this.scene.liveLabel);
-        this.scene.liveLabel = null;
-      }
       this.scene._hasLiveData = false;
-      // Restore model-based red track visibility
-      if (this.scene.trackDone) this.scene.trackDone.visible = true;
-      // Restore full cyan track
-      if (this.scene.trackFull) {
-        this.scene.trackFull.geometry.setDrawRange(0, this.scene._totalPoints);
-      }
     });
 
     // Start polling the tracking site

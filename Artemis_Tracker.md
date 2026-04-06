@@ -45,8 +45,10 @@ When you're done, provide instructions on how to run the application and test al
 
 ------------------------------------------------------------
 
+Install directions :
+Download to directory
 
-To run app
+To run app:
 Browser Ctrl+o  to open file
 Select file : C:\Users\alexl\claude_projects\artemis_tracker\index.html
 

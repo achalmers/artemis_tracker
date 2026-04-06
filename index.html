@@ -28,7 +28,7 @@
       <span class="nav-logo" aria-hidden="true">🚀</span>
       <div class="nav-brand-text">
         <span class="nav-title">ARTEMIS TRACKER</span>
-        <span class="nav-subtitle" id="nav-subtitle">Artemis 2</span>
+        <span class="nav-subtitle" id="nav-subtitle">Artemis 2 · v4</span>
       </div>
     </div>
 
@@ -111,7 +111,7 @@
           <h3 class="ctrl-title">Display Options</h3>
           <label class="toggle-label">
             <input type="checkbox" id="show-orbit"  checked />
-            <span>Show Intended Track (cyan)</span>
+            <span>Show Intended Track (blue)</span>
           </label>
           <label class="toggle-label">
             <input type="checkbox" id="show-grid" />
@@ -122,8 +122,8 @@
             <span>Body Labels</span>
           </label>
           <div class="track-legend">
-            <span class="legend-dot" style="background:#ff2222;"></span><span>Flown track</span>
-            <span class="legend-dot" style="background:#00d4ff; margin-left:10px;"></span><span>Intended track</span>
+            <span class="legend-dot" style="background:#ff2222; border-radius:50%;"></span><span>Spacecraft position</span>
+            <span class="legend-dot" style="background:#2266ff; margin-left:10px;"></span><span>Intended trajectory</span>
           </div>
         </section>
 
@@ -243,6 +243,22 @@
                 <tr><td>Moon X</td> <td id="tel-moon-x">384,400</td> <td>km</td></tr>
                 <tr><td>Moon Y</td> <td id="tel-moon-y">0</td>        <td>km</td></tr>
                 <tr><td>Moon Z</td> <td id="tel-moon-z">0</td>        <td>km</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="telem-section">
+            <h2>Mission Events</h2>
+            <table class="data-table">
+              <thead>
+                <tr><th>Event</th><th>MET</th><th>Time (Eastern)</th></tr>
+              </thead>
+              <tbody>
+                <tr class="event-highlight">
+                  <td>&#x1F312; Closest Moon Approach (~9,450 km from surface)</td>
+                  <td>T+120:00:00</td>
+                  <td id="tel-closest-approach">—</td>
+                </tr>
               </tbody>
             </table>
           </div>
