@@ -377,7 +377,7 @@ export class UI {
             <li><strong>Parking Orbit:</strong> 200 km circular LEO, 2 revolutions</li>
             <li><strong>TLI Burn:</strong> T+2 h 56 m — raises apogee to lunar distance</li>
             <li><strong>Transit:</strong> ≈ 117-hour translunar coast (T+3h to T+120h)</li>
-            <li><strong>Lunar Flyby:</strong> Free-return trajectory, closest approach ≈ 9 450 km from lunar surface (Apr-06 18:35 EDT)</li>
+            <li><strong>Lunar Flyby:</strong> Free-return trajectory, closest approach ≈ 6 513 km from lunar far-side surface (Apr-06 ~19:00 EDT)</li>
             <li><strong>Return:</strong> ≈ 6-day coast back to Earth</li>
             <li><strong>Splashdown:</strong> Pacific Ocean, Day 10</li>
           </ul>

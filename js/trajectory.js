@@ -23,9 +23,9 @@ export class Trajectory {
     // position at 2026-Apr-01 22:35 UTC: scene(x,z) = (-386582, -68681) km
     // atan2(-68681, -386582) = -169.93° (190.07° CCW from +X)
     this.MOON_INITIAL_DEG     = -169.93;
-    // NASA confirmed closest Moon approach: 2026-Apr-06 18:35 EDT = 22:35 UTC = T+120h.
+    // NASA confirmed closest Moon approach: 2026-Apr-06 ~19:00 EDT ≈ T+120h.
     // Moon ECI at T+120h: (-92 986, 0, -373 019) km.
-    // Closest approach keyframe places S/C ~11 200 km from Moon centre (≈9 450 km surface).
+    // Retrograde far-side flyby: closest approach ~8 250 km from centre (≈ 6 513 km surface).
 
     // ── Playback state ──────────────────────────────────────────────────────
     this.currentMET   = 0;       // Mission Elapsed Time, hours
@@ -76,21 +76,29 @@ export class Trajectory {
       [80,   -53563,  1300,   -247700],
       [100,  -67781,   800,   -310300],
       [114,  -77750,   333,   -354200],
-      [118,  -80606,   100,   -366900],
+      [118,  -80606,   100,   -366900],   // near-side approach, ~14 k km from Moon
 
-      // ── Lunar approach & flyby ────────────────────────────────────────────
-      [119,  -81500,   500,   -370000],   // entering lunar SOI
-      [120,  -82000,  2000,   -373019],   // closest approach (NASA: Apr-06 18:35 EDT)
-      [121,  -84000,  2000,   -375000],
-      [123,  -90000,  1000,   -376000],
-      [126, -100000,   100,   -374000],   // departing Moon region
+      // ── Lunar flyby — retrograde far-side arc (CW when viewed from +Y) ────
+      // Moon centre at T+120h: (-92 986, 0, -373 019) km EME2000.
+      // Arc: near-side → right-side → far-side → left-side → departure.
+      // Far-side closest approach: ~8 250 km from centre (≈ 6 513 km surface).
+      [119,  -84738,  1000,   -375075],   // right side, ~8 500 km from Moon centre
+      [120,  -94981,  1500,   -381024],   // FAR SIDE closest approach (~6 513 km surface)
+      [121, -101559,  1500,   -378171],   // continuing CW past far side
+      [122, -104630,  1000,   -370116],   // left side, ~12 k km from Moon
+      [124, -101000,   100,   -356000],   // departing Moon region, heading back
+      [126,  -98000,     0,   -344000],   // ~25 k km from Moon, return underway
 
-      // ── Return coast ──────────────────────────────────────────────────────
-      [140,  -88000,  -500,   -325000],
-      [160,  -70600, -1500,   -254800],
-      [185,  -49000, -2500,   -167150],
-      [205,  -32000, -1500,    -97400],
-      [220,  -19000,  -500,    -44700],
+      // ── Return coast — mirrors outbound in XZ → figure-8 crossing at T+180h ─
+      // Outbound Y > 0; return Y < 0 → paths cross in top-down (XZ) projection.
+      [130,  -90000,  -300,   -328000],
+      [135,  -80000,  -600,   -316000],
+      [140,  -67781,  -800,   -310300],   // mirror of outbound T+100 h
+      [160,  -53563, -1300,   -247700],   // mirror of outbound T+80 h
+      [180,  -39345, -1500,   -185000],   // CROSSING POINT — mirror of outbound T+60 h
+      [200,  -25126, -1300,   -122300],   // mirror of outbound T+40 h
+      [220,  -10908,  -700,    -59600],   // mirror of outbound T+20 h
+      [228,   -4000,  -300,    -28000],   // approaching entry interface
       [232,   -8463,  -480,     -2672],   // Entry Interface (≈ 122 km alt)
       [237,   -6922,  -145,     -1626],
       [239,   -6382,   -40,     -1235],
